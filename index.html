@@ -3,174 +3,150 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Générateur PDF + YouTube</title>
+<title>France 24 + Puzzle Numérique</title>
 <style>
-:root {
-  --main-color: #4f46e5;
-  --bg-color: #121212;
-  --card-color: #1e1e1e;
-  --text-color: #ffffff;
-}
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #121212;
+    color: #fff;
+  }
 
-* { box-sizing: border-box; margin:0; padding:0; font-family: Arial,sans-serif; }
+  .container {
+    display: flex;
+    flex-wrap: wrap;
+    height: 100vh;
+  }
 
-body {
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-  min-height: 100vh;
-}
+  .video-section, .puzzle-section {
+    flex: 1 1 400px;
+    min-width: 300px;
+    padding: 10px;
+    box-sizing: border-box;
+  }
 
-h1 {
-  color: var(--main-color);
-  margin-bottom: 20px;
-  text-align: center;
-}
+  iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
 
-.container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  width: 100%;
-  max-width: 1000px;
-  justify-content: center;
-}
+  .puzzle {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 5px;
+    max-width: 400px;
+    margin: auto;
+  }
 
-.card {
-  background-color: var(--card-color);
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-  flex: 1 1 400px;
-  min-width: 300px;
-}
+  .tile {
+    background: #4f46e5;
+    color: #fff;
+    font-size: 2em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100px;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 8px;
+    transition: background 0.2s;
+  }
 
-textarea, input[type="text"], select {
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
-  margin-top: 5px;
-  margin-bottom: 10px;
-  background-color: #2a2a2a;
-  color: var(--text-color);
-}
+  .tile.empty {
+    background: #1e1e1e;
+    cursor: default;
+  }
 
-textarea { height: 200px; resize: none; font-size: 16px; }
-
-button {
-  background-color: var(--main-color);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 16px;
-  margin-top: 5px;
-  width: 100%;
-  transition: background 0.3s;
-}
-
-button:hover { background-color: #3b36c4; }
-
-#download-media { background-color: #f59e0b; }
-
-iframe {
-  width: 100%;
-  height: 250px;
-  border-radius: 8px;
-  border: none;
-}
-
-.footer {
-  margin-top: auto;
-  font-size: 14px;
-  text-align: center;
-  color: #888;
-}
-
-@media(max-width: 800px) {
-  iframe { height: 200px; }
-  textarea { height: 150px; }
-}
+  @media (max-width: 700px) {
+    .container {
+      flex-direction: column;
+    }
+    .video-section, .puzzle-section {
+      height: 50vh;
+    }
+  }
 </style>
 </head>
 <body>
 
-<h1>Générateur de PDF + Lecteur YouTube</h1>
-
 <div class="container">
-  <!-- Zone texte / PDF -->
-  <div class="card">
-    <label for="content">Écris ton texte ou tes listes :</label>
-    <textarea id="content" placeholder="Exemple : Tâches, CV, Notes..."></textarea>
-    <button id="generate">Générer le PDF</button>
-    <label for="template">Choisir un style :</label>
-    <select id="template">
-      <option value="classic">Classique</option>
-      <option value="modern">Moderne</option>
-      <option value="minimal">Minimal</option>
-    </select>
+  <!-- France 24 Section -->
+  <div class="video-section">
+    <iframe src="https://www.france24.com/fr/embed" allowfullscreen></iframe>
   </div>
 
-  <!-- Zone YouTube -->
-  <div class="card">
-    <label for="youtube-link">Lien YouTube :</label>
-    <input type="text" id="youtube-link" placeholder="Colle le lien ici">
-    <button id="load-video">Lire la vidéo</button>
-    <iframe id="youtube-player" src="" allowfullscreen></iframe>
-    <button id="download-media">Télécharger Vidéo/Audio</button>
+  <!-- Puzzle Section -->
+  <div class="puzzle-section">
+    <h2 style="text-align:center;">Puzzle Numérique</h2>
+    <div class="puzzle" id="puzzle"></div>
+    <p style="text-align:center;"><button onclick="shufflePuzzle()">Mélanger</button></p>
   </div>
 </div>
 
-<div class="footer">
-  &copy; 2026 Générateur PDF | Développé par <a href="mailto:TheBenayed@gmail.com" style="color: var(--main-color); text-decoration: none;">TheBenayed@gmail.com</a>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-const { jsPDF } = window.jspdf;
+const puzzleContainer = document.getElementById('puzzle');
+let tiles = [];
 
-// Génération PDF
-document.getElementById("generate").addEventListener("click", () => {
-  const content = document.getElementById("content").value.trim();
-  const template = document.getElementById("template").value;
-  if(!content) { alert("Merci d'écrire quelque chose avant de générer le PDF !"); return; }
+function createPuzzle() {
+  tiles = [];
+  for (let i = 1; i <= 8; i++) {
+    tiles.push(i);
+  }
+  tiles.push(null); // case vide
+  renderPuzzle();
+}
 
-  const doc = new jsPDF();
-  if(template === "classic") { doc.setFont("helvetica","normal"); doc.setFontSize(14); doc.setTextColor(0,0,0); }
-  else if(template === "modern") { doc.setFont("helvetica","bold"); doc.setFontSize(16); doc.setTextColor(79,70,229); }
-  else if(template === "minimal") { doc.setFont("times","italic"); doc.setFontSize(12); doc.setTextColor(50,50,50); }
+function renderPuzzle() {
+  puzzleContainer.innerHTML = '';
+  tiles.forEach((num, index) => {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    if (num === null) {
+      tile.classList.add('empty');
+    } else {
+      tile.textContent = num;
+      tile.addEventListener('click', () => moveTile(index));
+    }
+    puzzleContainer.appendChild(tile);
+  });
+}
 
-  const lines = doc.splitTextToSize(content,180);
-  doc.text(lines,15,20);
-  doc.save("document.pdf");
-});
+function moveTile(index) {
+  const emptyIndex = tiles.indexOf(null);
+  const validMoves = [emptyIndex - 3, emptyIndex + 3];
+  if (emptyIndex % 3 !== 0) validMoves.push(emptyIndex - 1);
+  if (emptyIndex % 3 !== 2) validMoves.push(emptyIndex + 1);
 
-// Lecture vidéo YouTube
-document.getElementById("load-video").addEventListener("click", () => {
-  const link = document.getElementById("youtube-link").value.trim();
-  if(!link) return alert("Merci de coller un lien YouTube !");
-  let videoId = "";
-  try {
-    const url = new URL(link);
-    if(url.hostname.includes("youtu.be")) videoId = url.pathname.slice(1);
-    else if(url.hostname.includes("youtube.com")) videoId = url.searchParams.get("v");
-  } catch(e) { return alert("Lien YouTube invalide."); }
-  if(!videoId) return alert("Impossible de trouver la vidéo sur ce lien.");
-  document.getElementById("youtube-player").src = `https://www.youtube.com/embed/${videoId}`;
-});
+  if (validMoves.includes(index)) {
+    [tiles[emptyIndex], tiles[index]] = [tiles[index], tiles[emptyIndex]];
+    renderPuzzle();
+    checkWin();
+  }
+}
 
-// Télécharger vidéo/audio via service tiers
-document.getElementById("download-media").addEventListener("click", () => {
-  const link = document.getElementById("youtube-link").value.trim();
-  if(!link) return alert("Merci de coller un lien YouTube !");
-  const url = "https://yt1s.com/en1?q=" + encodeURIComponent(link);
-  window.open(url, "_blank");
-});
+function shufflePuzzle() {
+  for (let i = 0; i < 1000; i++) {
+    const emptyIndex = tiles.indexOf(null);
+    const possibleMoves = [];
+    if (emptyIndex % 3 !== 0) possibleMoves.push(emptyIndex - 1);
+    if (emptyIndex % 3 !== 2) possibleMoves.push(emptyIndex + 1);
+    if (emptyIndex - 3 >= 0) possibleMoves.push(emptyIndex - 3);
+    if (emptyIndex + 3 < 9) possibleMoves.push(emptyIndex + 3);
+    const move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+    [tiles[emptyIndex], tiles[move]] = [tiles[move], tiles[emptyIndex]];
+  }
+  renderPuzzle();
+}
+
+function checkWin() {
+  for (let i = 0; i < 8; i++) {
+    if (tiles[i] !== i + 1) return;
+  }
+  alert('🎉 Félicitations ! Puzzle terminé !');
+}
+
+createPuzzle();
 </script>
 
 </body>
